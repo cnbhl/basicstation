@@ -217,27 +217,31 @@ if [ -z "$CUPS_KEY" ]; then
     exit 1
 fi
 
+# Strip "Authorization: Bearer " prefix if user pasted the full string
+CUPS_KEY=$(echo "$CUPS_KEY" | sed 's/^Authorization: Bearer //')
+
 echo -e "${GREEN}API key received.${NC}"
 echo ""
 
-# Step 5: Download TTN Trust Certificate
-echo -e "${GREEN}Step 5: Downloading TTN trust certificate...${NC}"
+# Step 5: Setup TTN Trust Certificate
+echo -e "${GREEN}Step 5: Setting up trust certificate...${NC}"
 
-# TTN uses Let's Encrypt certificates, we need the ISRG Root X1
 TRUST_CERT="$CUPS_DIR/cups.trust"
-curl -sf https://letsencrypt.org/certs/isrgrootx1.pem -o "$TRUST_CERT"
 
-if [ ! -f "$TRUST_CERT" ] || [ ! -s "$TRUST_CERT" ]; then
-    echo -e "${YELLOW}Could not download certificate. Using system CA bundle...${NC}"
-    # Fallback to system CA certificates
-    if [ -f /etc/ssl/certs/ca-certificates.crt ]; then
-        cp /etc/ssl/certs/ca-certificates.crt "$TRUST_CERT"
-    else
+# Use system CA bundle for maximum compatibility with TTN
+if [ -f /etc/ssl/certs/ca-certificates.crt ]; then
+    cp /etc/ssl/certs/ca-certificates.crt "$TRUST_CERT"
+    echo -e "${GREEN}Trust certificate installed (system CA bundle).${NC}"
+else
+    # Fallback: download Let's Encrypt root certificate
+    echo "System CA bundle not found, downloading Let's Encrypt root..."
+    curl -sf https://letsencrypt.org/certs/isrgrootx1.pem -o "$TRUST_CERT"
+    if [ ! -f "$TRUST_CERT" ] || [ ! -s "$TRUST_CERT" ]; then
         echo -e "${RED}Error: Could not obtain trust certificate.${NC}"
         exit 1
     fi
+    echo -e "${GREEN}Trust certificate downloaded.${NC}"
 fi
-echo -e "${GREEN}Trust certificate saved.${NC}"
 echo ""
 
 # Step 6: Select log file location
