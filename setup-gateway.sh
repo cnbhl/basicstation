@@ -110,8 +110,38 @@ fi
 echo -e "${GREEN}Trust certificate saved.${NC}"
 echo ""
 
-# Step 5: Create credential files
-echo -e "${GREEN}Step 5: Creating credential files...${NC}"
+# Step 5: Select log file location
+echo -e "${GREEN}Step 5: Select log file location${NC}"
+echo "  1) Local directory ($CUPS_DIR/station.log)"
+echo "  2) System log (/var/log/station.log) - requires sudo"
+echo ""
+read -p "Enter choice [1-2]: " log_choice
+
+case $log_choice in
+    2)
+        LOG_FILE="/var/log/station.log"
+        echo -e "${YELLOW}Note: You will need to create the log file with proper permissions:${NC}"
+        echo -e "${YELLOW}  sudo touch /var/log/station.log${NC}"
+        echo -e "${YELLOW}  sudo chown $USER:$USER /var/log/station.log${NC}"
+        read -p "Create log file now with sudo? (Y/n): " create_log
+        if [ "$create_log" != "n" ] && [ "$create_log" != "N" ]; then
+            sudo touch /var/log/station.log
+            sudo chown $USER:$USER /var/log/station.log
+            chmod 644 /var/log/station.log
+            echo -e "${GREEN}Log file created: /var/log/station.log${NC}"
+        fi
+        ;;
+    *)
+        LOG_FILE="$CUPS_DIR/station.log"
+        touch "$LOG_FILE"
+        chmod 644 "$LOG_FILE"
+        echo -e "${GREEN}Log file will be: $LOG_FILE${NC}"
+        ;;
+esac
+echo ""
+
+# Step 6: Create credential files
+echo -e "${GREEN}Step 6: Creating credential files...${NC}"
 
 # Create cups.uri
 echo "$CUPS_URI" > "$CUPS_DIR/cups.uri"
@@ -122,27 +152,24 @@ echo "  Created: cups.uri"
 echo "Authorization: Bearer $CUPS_KEY" > "$CUPS_DIR/cups.key"
 echo "  Created: cups.key"
 
-# Create empty tc.* files (will be populated by CUPS)
-touch "$CUPS_DIR/tc.uri"
-touch "$CUPS_DIR/tc.key"
-touch "$CUPS_DIR/tc.trust"
-touch "$CUPS_DIR/tc.crt"
-echo "  Created: tc.* placeholder files"
+# Note: tc.* files are not created here - CUPS will populate them automatically
+# Creating empty tc.* files causes the station to fail with "Malformed URI" error
 
-# Step 6: Generate station.conf from template
-echo -e "${GREEN}Step 6: Generating station.conf...${NC}"
+# Step 7: Generate station.conf from template
+echo -e "${GREEN}Step 7: Generating station.conf...${NC}"
 
 if [ -f "$CUPS_DIR/station.conf.template" ]; then
     sed -e "s|{{GATEWAY_EUI}}|$GATEWAY_EUI|g" \
         -e "s|{{INSTALL_DIR}}|$SCRIPT_DIR|g" \
+        -e "s|{{LOG_FILE}}|$LOG_FILE|g" \
         "$CUPS_DIR/station.conf.template" > "$CUPS_DIR/station.conf"
     echo "  Created: station.conf"
 else
     echo -e "${YELLOW}Warning: station.conf.template not found. Please configure station.conf manually.${NC}"
 fi
 
-# Step 7: Set permissions
-echo -e "${GREEN}Step 7: Setting file permissions...${NC}"
+# Step 8: Set permissions
+echo -e "${GREEN}Step 8: Setting file permissions...${NC}"
 chmod 600 "$CUPS_DIR/cups.key" 2>/dev/null || true
 chmod 600 "$CUPS_DIR/tc.key" 2>/dev/null || true
 chmod 644 "$CUPS_DIR/cups.uri" 2>/dev/null || true
@@ -159,6 +186,7 @@ echo "Your gateway is configured with:"
 echo "  Region:      $TTN_REGION"
 echo "  Gateway EUI: $GATEWAY_EUI"
 echo "  Config dir:  $CUPS_DIR"
+echo "  Log file:    $LOG_FILE"
 echo ""
 echo "To build the station binary (if not already done):"
 echo -e "  ${YELLOW}make platform=corecell variant=std${NC}"
