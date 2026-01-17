@@ -163,10 +163,13 @@ cd examples/corecell
 basicstation/
 ├── setup-gateway.sh              # Automated setup script
 ├── tools/
+│   ├── README.md                 # Tools overview
 │   └── chip_id/
 │       ├── chip_id               # EUI detection binary
 │       ├── chip_id.c             # Source code
-│       └── reset_lgw.sh          # Pi 5 compatible reset script
+│       ├── reset_lgw.sh          # Pi 5 compatible reset script
+│       ├── LICENSE               # Semtech BSD 3-Clause License
+│       └── README.md             # Tool documentation
 └── examples/
     └── corecell/
         └── cups-ttn/             # TTN CUPS configuration directory
@@ -175,6 +178,10 @@ basicstation/
             ├── cups.key
             └── cups.trust
 ```
+
+##### Third-Party Components
+
+The `chip_id` tool is derived from the [Semtech sx1302_hal](https://github.com/Lora-net/sx1302_hal) repository and is licensed under the BSD 3-Clause License. See [tools/chip_id/LICENSE](tools/chip_id/LICENSE) for details.
 
 #### PicoCell Gateway (Linux OS as HOST + [SX1308 USB Reference design](https://www.semtech.com/products/wireless-rf/lora-gateways/sx1308p868gw))
 
