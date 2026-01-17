@@ -89,6 +89,93 @@ This example configuration for Corecell connects to [The Things Network](https:/
 
 Note: SPI port requires to be activated on Raspberry Pi thanks to [raspi-config](https://www.raspberrypi.org/documentation/configuration/raspi-config.md) tool.
 
+#### Raspberry Pi 5 + SX1302/WM1302 with TTN CUPS (Automated Setup)
+
+This repository includes an automated setup script for configuring a LoRaWAN gateway on Raspberry Pi 5 with The Things Network using CUPS protocol.
+
+##### Features
+
+* **Automatic EUI Detection** - Reads the Gateway EUI directly from the SX1302 chip using the included `chip_id` tool
+* **Raspberry Pi 5 GPIO Support** - Includes reset scripts with automatic GPIO base offset detection for Pi 5 compatibility
+* **TTN CUPS Integration** - Configures credentials for The Things Network CUPS protocol
+* **Systemd Service** - Optional automatic service setup for running the gateway at boot
+
+##### Quick Start
+
+``` sourceCode
+cd basicstation
+./setup-gateway.sh
+```
+
+The setup script guides you through 10 steps:
+
+| Step | Description |
+|------|-------------|
+| 1 | Build the station binary |
+| 2 | Select TTN region (EU1, NAM1, AU1) |
+| 3 | Auto-detect Gateway EUI from SX1302 chip |
+| 4 | Enter CUPS API Key from TTN Console |
+| 5 | Download TTN trust certificate |
+| 6 | Select log file location |
+| 7 | Create credential files |
+| 8 | Generate station.conf |
+| 9 | Set file permissions |
+| 10 | Configure systemd service (optional) |
+
+##### Gateway EUI Auto-Detection
+
+The setup script automatically detects the Gateway EUI from your SX1302 concentrator chip using the `chip_id` tool located in `tools/chip_id/`. This eliminates the need to manually look up or calculate the EUI.
+
+``` sourceCode
+Step 3: Detecting Gateway EUI from SX1302 chip...
+
+Detected EUI from SX1302 chip: AABBCCDDEEFF0011
+
+Use this EUI? (Y/n):
+```
+
+##### Running as a Service
+
+If you choose to set up a systemd service, the gateway will:
+* Start automatically on boot
+* Restart on failure
+* Log to the systemd journal
+
+Useful service commands:
+``` sourceCode
+sudo systemctl status basicstation.service   # Check status
+sudo systemctl stop basicstation.service     # Stop service
+sudo systemctl restart basicstation.service  # Restart service
+sudo journalctl -u basicstation.service -f   # View live logs
+```
+
+##### Manual Start
+
+If you chose not to set up a service, start the gateway manually:
+``` sourceCode
+cd examples/corecell
+./start-station.sh -l ./cups-ttn
+```
+
+##### Repository Structure
+
+```
+basicstation/
+├── setup-gateway.sh              # Automated setup script
+├── tools/
+│   └── chip_id/
+│       ├── chip_id               # EUI detection binary
+│       ├── chip_id.c             # Source code
+│       └── reset_lgw.sh          # Pi 5 compatible reset script
+└── examples/
+    └── corecell/
+        └── cups-ttn/             # TTN CUPS configuration directory
+            ├── station.conf
+            ├── cups.uri
+            ├── cups.key
+            └── cups.trust
+```
+
 #### PicoCell Gateway (Linux OS as HOST + [SX1308 USB Reference design](https://www.semtech.com/products/wireless-rf/lora-gateways/sx1308p868gw))
 
 

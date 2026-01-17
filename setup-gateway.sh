@@ -29,8 +29,23 @@ if [ -f "$CUPS_DIR/cups.key" ]; then
     fi
 fi
 
-# Step 1: Select TTN Region
-echo -e "${GREEN}Step 1: Select your TTN region${NC}"
+# Step 1: Build the station binary
+echo -e "${GREEN}Step 1: Building the station binary...${NC}"
+echo "This may take a few minutes on first build."
+echo ""
+
+cd "$SCRIPT_DIR"
+if make platform=corecell variant=std; then
+    echo -e "${GREEN}Build completed successfully.${NC}"
+else
+    echo -e "${RED}Build failed. Please check the error messages above.${NC}"
+    echo "You can try building manually with: make platform=corecell variant=std"
+    exit 1
+fi
+echo ""
+
+# Step 2: Select TTN Region
+echo -e "${GREEN}Step 2: Select your TTN region${NC}"
 echo "  1) EU1  - Europe (eu1.cloud.thethings.network)"
 echo "  2) NAM1 - North America (nam1.cloud.thethings.network)"
 echo "  3) AU1  - Australia (au1.cloud.thethings.network)"
@@ -51,30 +66,68 @@ CUPS_URI="https://${TTN_REGION}.cloud.thethings.network:443"
 echo -e "Selected: ${GREEN}$CUPS_URI${NC}"
 echo ""
 
-# Step 2: Gateway EUI
-echo -e "${GREEN}Step 2: Enter your Gateway EUI${NC}"
-echo "This is a 16-character hex string (e.g., AABBCCDDEEFF0011)"
-echo "You can find this in your TTN Console under Gateway settings."
+# Step 3: Gateway EUI (auto-detect from SX1302 chip)
+echo -e "${GREEN}Step 3: Detecting Gateway EUI from SX1302 chip...${NC}"
 echo ""
-read -p "Gateway EUI: " GATEWAY_EUI
 
-# Validate Gateway EUI format
-if ! [[ "$GATEWAY_EUI" =~ ^[0-9A-Fa-f]{16}$ ]]; then
-    echo -e "${RED}Warning: Gateway EUI should be 16 hex characters.${NC}"
-    read -p "Continue anyway? (y/N): " continue_anyway
-    if [ "$continue_anyway" != "y" ] && [ "$continue_anyway" != "Y" ]; then
-        echo "Setup cancelled."
-        exit 1
+CHIP_ID_TOOL="$SCRIPT_DIR/tools/chip_id/chip_id"
+CHIP_ID_DIR="$SCRIPT_DIR/tools/chip_id"
+DETECTED_EUI=""
+
+if [ -x "$CHIP_ID_TOOL" ]; then
+    # Run chip_id to get the concentrator EUI
+    cd "$CHIP_ID_DIR"
+    CHIP_OUTPUT=$(sudo ./chip_id -d /dev/spidev0.0 2>&1) || true
+    cd "$SCRIPT_DIR"
+
+    # Extract EUI from output (format: "concentrator EUI: 0xAABBCCDDEEFF0011")
+    DETECTED_EUI=$(echo "$CHIP_OUTPUT" | grep -i "concentrator EUI" | sed 's/.*0x\([0-9a-fA-F]*\).*/\1/' | tr '[:lower:]' '[:upper:]')
+
+    if [ -n "$DETECTED_EUI" ] && [[ "$DETECTED_EUI" =~ ^[0-9A-F]{16}$ ]]; then
+        echo -e "Detected EUI from SX1302 chip: ${GREEN}$DETECTED_EUI${NC}"
+        echo ""
+        read -p "Use this EUI? (Y/n): " use_detected
+        if [ "$use_detected" = "n" ] || [ "$use_detected" = "N" ]; then
+            DETECTED_EUI=""
+        fi
+    else
+        echo -e "${YELLOW}Could not auto-detect EUI from SX1302 chip.${NC}"
+        DETECTED_EUI=""
     fi
+else
+    echo -e "${YELLOW}chip_id tool not found at $CHIP_ID_TOOL${NC}"
+    echo "You can build it from sx1302_hal or enter the EUI manually."
 fi
 
-# Convert to uppercase
-GATEWAY_EUI=$(echo "$GATEWAY_EUI" | tr '[:lower:]' '[:upper:]')
+if [ -n "$DETECTED_EUI" ]; then
+    GATEWAY_EUI="$DETECTED_EUI"
+else
+    echo ""
+    echo "Please enter your Gateway EUI manually."
+    echo "This is a 16-character hex string (e.g., AABBCCDDEEFF0011)"
+    echo "You can find this in your TTN Console under Gateway settings."
+    echo ""
+    read -p "Gateway EUI: " GATEWAY_EUI
+
+    # Validate Gateway EUI format
+    if ! [[ "$GATEWAY_EUI" =~ ^[0-9A-Fa-f]{16}$ ]]; then
+        echo -e "${RED}Warning: Gateway EUI should be 16 hex characters.${NC}"
+        read -p "Continue anyway? (y/N): " continue_anyway
+        if [ "$continue_anyway" != "y" ] && [ "$continue_anyway" != "Y" ]; then
+            echo "Setup cancelled."
+            exit 1
+        fi
+    fi
+
+    # Convert to uppercase
+    GATEWAY_EUI=$(echo "$GATEWAY_EUI" | tr '[:lower:]' '[:upper:]')
+fi
+
 echo -e "Gateway EUI: ${GREEN}$GATEWAY_EUI${NC}"
 echo ""
 
-# Step 3: CUPS API Key
-echo -e "${GREEN}Step 3: Enter your CUPS API Key${NC}"
+# Step 4: CUPS API Key
+echo -e "${GREEN}Step 4: Enter your CUPS API Key${NC}"
 echo "Generate this in TTN Console: Gateway > API Keys > Add API Key"
 echo "Required rights: 'Link as Gateway to a Gateway Server for traffic exchange, i.e. write uplink and read downlink'"
 echo ""
@@ -90,8 +143,8 @@ fi
 echo -e "${GREEN}API key received.${NC}"
 echo ""
 
-# Step 4: Download TTN Trust Certificate
-echo -e "${GREEN}Step 4: Downloading TTN trust certificate...${NC}"
+# Step 5: Download TTN Trust Certificate
+echo -e "${GREEN}Step 5: Downloading TTN trust certificate...${NC}"
 
 # TTN uses Let's Encrypt certificates, we need the ISRG Root X1
 TRUST_CERT="$CUPS_DIR/cups.trust"
@@ -110,8 +163,8 @@ fi
 echo -e "${GREEN}Trust certificate saved.${NC}"
 echo ""
 
-# Step 5: Select log file location
-echo -e "${GREEN}Step 5: Select log file location${NC}"
+# Step 6: Select log file location
+echo -e "${GREEN}Step 6: Select log file location${NC}"
 echo "  1) Local directory ($CUPS_DIR/station.log)"
 echo "  2) System log (/var/log/station.log) - requires sudo"
 echo ""
@@ -140,8 +193,8 @@ case $log_choice in
 esac
 echo ""
 
-# Step 6: Create credential files
-echo -e "${GREEN}Step 6: Creating credential files...${NC}"
+# Step 7: Create credential files
+echo -e "${GREEN}Step 7: Creating credential files...${NC}"
 
 # Create cups.uri
 echo "$CUPS_URI" > "$CUPS_DIR/cups.uri"
@@ -155,8 +208,8 @@ echo "  Created: cups.key"
 # Note: tc.* files are not created here - CUPS will populate them automatically
 # Creating empty tc.* files causes the station to fail with "Malformed URI" error
 
-# Step 7: Generate station.conf from template
-echo -e "${GREEN}Step 7: Generating station.conf...${NC}"
+# Step 8: Generate station.conf from template
+echo -e "${GREEN}Step 8: Generating station.conf...${NC}"
 
 if [ -f "$CUPS_DIR/station.conf.template" ]; then
     sed -e "s|{{GATEWAY_EUI}}|$GATEWAY_EUI|g" \
@@ -168,8 +221,8 @@ else
     echo -e "${YELLOW}Warning: station.conf.template not found. Please configure station.conf manually.${NC}"
 fi
 
-# Step 8: Set permissions
-echo -e "${GREEN}Step 8: Setting file permissions...${NC}"
+# Step 9: Set permissions
+echo -e "${GREEN}Step 9: Setting file permissions...${NC}"
 chmod 600 "$CUPS_DIR/cups.key" 2>/dev/null || true
 chmod 600 "$CUPS_DIR/tc.key" 2>/dev/null || true
 chmod 644 "$CUPS_DIR/cups.uri" 2>/dev/null || true
@@ -177,22 +230,109 @@ chmod 644 "$CUPS_DIR/cups.trust" 2>/dev/null || true
 chmod 644 "$CUPS_DIR/station.conf" 2>/dev/null || true
 echo "  Permissions set."
 
+# Step 10: Service setup
 echo ""
-echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN} Setup Complete!${NC}"
-echo -e "${GREEN}========================================${NC}"
+echo -e "${GREEN}Step 10: Gateway startup configuration${NC}"
 echo ""
-echo "Your gateway is configured with:"
-echo "  Region:      $TTN_REGION"
-echo "  Gateway EUI: $GATEWAY_EUI"
-echo "  Config dir:  $CUPS_DIR"
-echo "  Log file:    $LOG_FILE"
-echo ""
-echo "To build the station binary (if not already done):"
-echo -e "  ${YELLOW}make platform=corecell variant=std${NC}"
-echo ""
-echo "To start the gateway:"
-echo -e "  ${YELLOW}cd $SCRIPT_DIR/examples/corecell${NC}"
-echo -e "  ${YELLOW}./start-station.sh -l ./cups-ttn${NC}"
-echo ""
-echo -e "${YELLOW}Note: You may need to run start-station.sh with sudo for GPIO access.${NC}"
+read -p "Do you want to run the gateway as a systemd service? (y/N): " setup_service
+
+if [ "$setup_service" = "y" ] || [ "$setup_service" = "Y" ]; then
+    echo ""
+    echo -e "${GREEN}Setting up systemd service...${NC}"
+
+    SERVICE_FILE="/etc/systemd/system/basicstation.service"
+
+    # Create the service file
+    sudo tee "$SERVICE_FILE" > /dev/null << EOF
+[Unit]
+Description=LoRa Basics Station (SX1302/Corecell) for TTN (CUPS)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=$SCRIPT_DIR
+
+ExecStart=$SCRIPT_DIR/build-corecell-std/bin/station --home $CUPS_DIR
+
+Restart=on-failure
+RestartSec=5
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=false
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+# Logs
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=basicstation
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    echo "  Created: $SERVICE_FILE"
+
+    # Reload systemd and enable service
+    sudo systemctl daemon-reload
+    sudo systemctl enable basicstation.service
+    echo "  Service enabled."
+
+    echo ""
+    read -p "Do you want to start the service now? (Y/n): " start_now
+    if [ "$start_now" != "n" ] && [ "$start_now" != "N" ]; then
+        sudo systemctl start basicstation.service
+        sleep 2
+        if systemctl is-active --quiet basicstation.service; then
+            echo -e "${GREEN}Service started successfully!${NC}"
+        else
+            echo -e "${YELLOW}Service may have failed to start. Check status with:${NC}"
+            echo "  sudo systemctl status basicstation.service"
+            echo "  sudo journalctl -u basicstation.service -f"
+        fi
+    else
+        echo ""
+        echo "To start the service later, run:"
+        echo -e "  ${YELLOW}sudo systemctl start basicstation.service${NC}"
+    fi
+
+    echo ""
+    echo -e "${GREEN}========================================${NC}"
+    echo -e "${GREEN} Setup Complete!${NC}"
+    echo -e "${GREEN}========================================${NC}"
+    echo ""
+    echo "Your gateway is configured with:"
+    echo "  Region:      $TTN_REGION"
+    echo "  Gateway EUI: $GATEWAY_EUI"
+    echo "  Config dir:  $CUPS_DIR"
+    echo "  Log file:    $LOG_FILE"
+    echo ""
+    echo "Useful commands:"
+    echo -e "  ${YELLOW}sudo systemctl status basicstation.service${NC}  - Check service status"
+    echo -e "  ${YELLOW}sudo systemctl stop basicstation.service${NC}   - Stop the service"
+    echo -e "  ${YELLOW}sudo systemctl restart basicstation.service${NC} - Restart the service"
+    echo -e "  ${YELLOW}sudo journalctl -u basicstation.service -f${NC}  - View live logs"
+else
+    echo ""
+    echo -e "${GREEN}========================================${NC}"
+    echo -e "${GREEN} Setup Complete!${NC}"
+    echo -e "${GREEN}========================================${NC}"
+    echo ""
+    echo "Your gateway is configured with:"
+    echo "  Region:      $TTN_REGION"
+    echo "  Gateway EUI: $GATEWAY_EUI"
+    echo "  Config dir:  $CUPS_DIR"
+    echo "  Log file:    $LOG_FILE"
+    echo ""
+    echo "To start the gateway manually:"
+    echo -e "  ${YELLOW}cd $SCRIPT_DIR/examples/corecell${NC}"
+    echo -e "  ${YELLOW}./start-station.sh -l ./cups-ttn${NC}"
+    echo ""
+    echo -e "${YELLOW}Note: You may need to run start-station.sh with sudo for GPIO access.${NC}"
+fi
