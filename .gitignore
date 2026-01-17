@@ -1,0 +1,29 @@
+# Build directories
+build-*/
+
+# Sensitive credentials - never commit these
+*.key
+*.trust
+*.crt
+*.done
+
+# User-specific URIs (templates provided as .example files)
+cups.uri
+tc.uri
+*-bak.uri
+
+# Generated station config (template is tracked)
+examples/corecell/cups-ttn/station.conf
+
+# Backup files
+*.bak
+*.bck_*
+
+# Log files
+*.log
+
+# Editor files
+*~
+*.swp
+.vscode/
+.idea/

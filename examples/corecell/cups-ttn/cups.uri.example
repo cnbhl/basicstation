@@ -1,0 +1,6 @@
+# TTN CUPS Server URLs by region:
+# EU1:  https://eu1.cloud.thethings.network:443
+# NAM1: https://nam1.cloud.thethings.network:443
+# AU1:  https://au1.cloud.thethings.network:443
+#
+# Replace this file with 'cups.uri' containing only the URL (no comments)
