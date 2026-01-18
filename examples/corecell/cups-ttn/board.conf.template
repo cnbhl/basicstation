@@ -1,0 +1,8 @@
+# SX1302 Concentrator Board Definitions
+# Format: BOARD_TYPE:DESCRIPTION:SX1302_RESET_BCM:SX1302_POWER_EN_BCM
+#
+# To add a new board, add a line with the format above.
+# BCM pin numbers refer to the Broadcom GPIO numbering (not physical pin numbers).
+#
+WM1302:Seeed Studio WM1302 (SPI version):17:18
+PG1302:Dragino PG1302:23:27
