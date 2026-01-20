@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.0.6-cnbhl.2 - 2025-01-20
+
+* setup: Build chip_id from source for architecture-independent EUI detection
+* setup: Added log_hal stub to link chip_id with station's libloragw
+* setup: Show chip_id build errors for easier debugging
+* setup: Auto-detect ARM architecture (32-bit and 64-bit) for corecell platform
+* setup: Fix sysfs GPIO access and auto-restart service on update
+* docs: Added Raspberry Pi interface configuration guide (SPI, I2C, serial)
+* docs: Updated README with raspi-config requirements
+
+## 2.0.6-cnbhl.1 - 2025-01-19
+
+* Initial fork release with Raspberry Pi 5 support
+* Added automated setup script for TTN CUPS configuration
+* Added Gateway EUI auto-detection from SX1302/SX1303 chip
+* Added systemd service configuration
+* Added Pi 5 GPIO compatibility (base offset 571)
+
 ## 2.0.6 - 2022-01-17
 
 * deps: Updated sx1302_hal dependency to version 2.1.0 (no LBT yet) (#89, #103, #121, #130)
