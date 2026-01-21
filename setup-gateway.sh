@@ -37,6 +37,7 @@ CUPS_URI=""
 GATEWAY_EUI=""
 CUPS_KEY=""
 LOG_FILE=""
+GPS_DEVICE=""
 MODE="setup"
 
 #######################################
@@ -57,6 +58,7 @@ source_lib "$LIB_DIR/common.sh"
 source_lib "$LIB_DIR/validation.sh"
 source_lib "$LIB_DIR/file_ops.sh"
 source_lib "$LIB_DIR/service.sh"
+source_lib "$LIB_DIR/gps.sh"
 source_lib "$LIB_DIR/setup.sh"
 source_lib "$LIB_DIR/uninstall.sh"
 
