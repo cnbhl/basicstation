@@ -23,6 +23,7 @@ The setup script guides you through a complete gateway configuration:
 
 | Step | Description |
 |------|-------------|
+| - | Check system dependencies |
 | 1 | Build the station binary |
 | 2 | Select TTN region (EU1, NAM1, AU1) |
 | 3 | Auto-detect Gateway EUI from SX1302 chip |
@@ -35,6 +36,15 @@ The setup script guides you through a complete gateway configuration:
 | 10 | Set file permissions |
 | 11 | Configure systemd service (optional) |
 
+### Command Line Options
+
+```bash
+./setup-gateway.sh              # Run setup wizard
+./setup-gateway.sh --uninstall  # Remove installation
+./setup-gateway.sh -v           # Verbose/debug logging
+./setup-gateway.sh --skip-deps  # Skip dependency checks
+```
+
 ---
 
 ## Features Added in This Fork
@@ -43,11 +53,56 @@ The setup script guides you through a complete gateway configuration:
 
 `setup-gateway.sh` provides a guided setup process for configuring Basic Station with TTN CUPS. It handles:
 
+- Dependency validation at startup
 - Building the station binary
 - Gateway EUI detection
+- GPS serial port auto-detection
 - Credential file generation
 - Certificate downloads
 - Systemd service installation
+
+The script uses a modular architecture with reusable library functions in `lib/`.
+
+### Dependency Validation
+
+The setup script checks for required dependencies before proceeding:
+
+| Dependency | Purpose |
+|------------|---------|
+| `curl` | Downloading certificates |
+| `gcc` | Compiling station and chip_id |
+| `make` | Building station |
+| `sed` | Template processing |
+| `stty` | GPS serial port configuration |
+| `grep` | Text processing |
+| `timeout` | GPS detection timeouts |
+
+Optional: `systemctl` for service management.
+
+If dependencies are missing, install them with:
+```bash
+sudo apt-get update
+sudo apt-get install curl gcc make sed coreutils grep
+```
+
+### Setup Logging
+
+All setup operations are logged to `setup.log` in the script directory:
+
+```bash
+# View setup log
+cat setup.log
+
+# Run with verbose/debug logging
+./setup-gateway.sh -v
+```
+
+Log format:
+```
+[2026-01-22 10:30:45] [INFO] Starting setup-gateway.sh in setup mode
+[2026-01-22 10:30:46] [DEBUG] Using chip_id tool at ...
+[2026-01-22 10:30:47] [WARNING] Could not auto-detect EUI
+```
 
 ### Gateway EUI Auto-Detection
 
@@ -112,7 +167,16 @@ cd examples/corecell
 
 ```
 basicstation/
-├── setup-gateway.sh                      # Automated setup script
+├── setup-gateway.sh                      # Main entry point
+├── setup.log                             # Setup log file (created on run)
+├── lib/                                  # Modular library functions
+│   ├── common.sh                         # Output, input, logging, dependency checks
+│   ├── validation.sh                     # Input validation functions
+│   ├── file_ops.sh                       # File operations (secure writes, templates)
+│   ├── service.sh                        # Systemd service management
+│   ├── gps.sh                            # GPS serial port detection
+│   ├── setup.sh                          # Setup wizard steps
+│   └── uninstall.sh                      # Uninstall functions
 ├── tools/
 │   ├── README.md
 │   └── chip_id/                          # EUI detection tool
@@ -123,7 +187,7 @@ basicstation/
 └── examples/
     └── corecell/
         └── cups-ttn/                     # TTN CUPS configuration
-            ├── station.conf.template
+            ├── station.conf.template     # Template with {{GATEWAY_EUI}}, {{GPS_DEVICE}}, etc.
             ├── cups.uri.example
             ├── reset_lgw.sh              # Pi 5 compatible reset (single source)
             ├── start-station.sh
