@@ -233,6 +233,45 @@ check_spi_available() {
     return 0
 }
 
+# Check if I2C is available (required for SX1302/SX1303 temperature sensor)
+# Note: The SX1302 HAL hardcodes "/dev/i2c-1" in loragw_i2c.h
+check_i2c_available() {
+    if [[ -e /dev/i2c-1 ]]; then
+        return 0
+    fi
+
+    # Check if I2C exists on other buses (for diagnostic purposes)
+    local other_i2c
+    other_i2c=$(ls /dev/i2c-* 2>/dev/null | grep -v i2c-1 | head -1)
+
+    print_error "I2C device not found at /dev/i2c-1"
+    echo ""
+
+    if [[ -n "$other_i2c" ]]; then
+        print_warning "Note: I2C found at $other_i2c, but the SX1302/SX1303 HAL requires /dev/i2c-1"
+        echo ""
+    fi
+
+    echo "The SX1302/SX1303 concentrator requires I2C bus 1 for the temperature sensor."
+    echo ""
+    echo "To enable I2C, use one of these methods:"
+    echo ""
+    echo "  Method 1 - Using raspi-config:"
+    echo "    sudo raspi-config"
+    echo "    Navigate to: Interface Options > I2C > Enable"
+    echo "    Reboot when prompted"
+    echo ""
+    echo "  Method 2 - Command line:"
+    echo "    sudo raspi-config nonint do_i2c 0"
+    echo "    sudo reboot"
+    echo ""
+    echo "  Method 3 - Manual (add to /boot/config.txt):"
+    echo "    echo 'dtparam=i2c_arm=on' | sudo tee -a /boot/config.txt"
+    echo "    sudo reboot"
+    echo ""
+    return 1
+}
+
 #######################################
 # Dependency Validation
 #######################################
@@ -344,6 +383,15 @@ check_all_dependencies() {
         fi
     else
         log_debug "SPI device available"
+    fi
+
+    # Check I2C availability (required for SX1302/SX1303 temperature sensor)
+    if ! check_i2c_available; then
+        if [[ "$mode" == "strict" ]]; then
+            result=1
+        fi
+    else
+        log_debug "I2C device available"
     fi
 
     if [[ $result -eq 0 ]]; then

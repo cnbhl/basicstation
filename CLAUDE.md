@@ -52,7 +52,7 @@ Main entry point that sources modular libraries from `lib/`. Supports:
 Core utilities including:
 - **Output functions**: `print_header()`, `print_success()`, `print_warning()`, `print_error()`, `print_banner()`
 - **Input functions**: `confirm()`, `read_secret()`, `read_validated()`
-- **System checks**: `command_exists()`, `file_exists()`, `file_executable()`, `dir_exists()`, `check_spi_available()`
+- **System checks**: `command_exists()`, `file_exists()`, `file_executable()`, `dir_exists()`, `check_spi_available()`, `check_i2c_available()`
 - **Logging system**:
   - `init_logging(path)` - Initialize log file with timestamp header
   - `log_debug(msg)`, `log_info(msg)`, `log_warning(msg)`, `log_error(msg)`
