@@ -303,7 +303,7 @@ step_detect_eui() {
         chip_output=$(cd "$chip_id_dir" && sudo ./chip_id -d /dev/spidev0.0 2>&1) || true
         log_debug "chip_id output: $chip_output"
 
-        detected_eui=$(printf '%s' "$chip_output" | grep -i "concentrator EUI" | sed 's/.*0x\([0-9a-fA-F]*\).*/\1/' | tr '[:lower:]' '[:upper:]')
+        detected_eui=$(printf '%s' "$chip_output" | grep -i "concentrator EUI" | sed 's/.*0x\([0-9a-fA-F]*\).*/\1/' | tr '[:lower:]' '[:upper:]') || true
 
         if [[ -n "$detected_eui" ]] && validate_eui "$detected_eui"; then
             log_info "Detected Gateway EUI: $detected_eui"
