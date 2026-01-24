@@ -414,7 +414,7 @@ step_create_credentials() {
     if file_exists "$template"; then
         # Format GPS_DEVICE and PPS_SOURCE for JSON
         # When GPS is enabled: gps="/dev/ttyXXX", pps="gps"
-        # When GPS is disabled: gps="", pps="" (uses fuzzy time sync)
+        # When GPS is disabled: gps="", pps="fuzzy" (uses network time sync)
         local gps_json_value
         local pps_json_value
         if [[ -n "$GPS_DEVICE" ]]; then
@@ -422,7 +422,7 @@ step_create_credentials() {
             pps_json_value="\"gps\""
         else
             gps_json_value="\"\""
-            pps_json_value="\"\""
+            pps_json_value="\"fuzzy\""
         fi
 
         process_template "$template" "$CUPS_DIR/station.conf" \
