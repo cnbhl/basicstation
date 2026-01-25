@@ -71,9 +71,20 @@ The setup wizard auto-configures GPIO pins for your board. Custom boards can spe
 
 See [docs/SUPPORTED_BOARDS.md](docs/SUPPORTED_BOARDS.md) for detailed GPIO pinouts and adding new boards.
 
+## Tested Platforms
+
+| Device | Model | OS | Userspace | Kernel |
+|--------|-------|-----|-----------|--------|
+| Pi Zero W | Rev 1.1 | Raspbian 13 (trixie) | armv6l | armv6l |
+| Pi 4 (32-bit) | Model B Rev 1.4 | Raspbian 13 (trixie) | armhf | aarch64 |
+| Pi 4 (64-bit) | Model B Rev 1.4 | Raspbian 12 (bookworm) | aarch64 | aarch64 |
+| Pi 5 | Model B Rev 1.0 | Debian 12 (bookworm) | aarch64 | aarch64 |
+
+All three ARM userspace architectures are supported: **armv6l** (Pi Zero/1), **armhf** (32-bit Pi 2/3/4), **aarch64** (64-bit Pi 3/4/5).
+
 ## Prerequisites
 
-- Raspberry Pi 3/4/5 with SPI and I2C enabled
+- Raspberry Pi Zero W/3/4/5 with SPI and I2C enabled
 - SX1302/SX1303 concentrator HAT (see supported boards above)
 - Gateway registered on [TTN Console](https://console.cloud.thethings.network/)
 - CUPS API Key from TTN
