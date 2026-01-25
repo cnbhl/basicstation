@@ -34,28 +34,12 @@ The setup wizard builds the station, detects your Gateway EUI, configures TTN CU
 For CI/CD pipelines and scripted deployments:
 
 ```bash
-# Minimal automated deployment
 ./setup-gateway.sh -y \
     --board WM1302 \
     --region eu1 \
     --eui auto \
     --cups-key "NNSXS.xxx..." \
     --service
-
-# Full automation with all options
-./setup-gateway.sh --non-interactive \
-    --force \
-    --board PG1302 \
-    --region nam1 \
-    --eui AABBCCDDEEFF0011 \
-    --cups-key-file /etc/ttn/cups.key \
-    --log-file /var/log/station.log \
-    --gps /dev/ttyAMA0 \
-    --service \
-    --skip-build
-
-# Non-interactive uninstall
-./setup-gateway.sh --uninstall -y
 ```
 
 **Non-interactive options:**

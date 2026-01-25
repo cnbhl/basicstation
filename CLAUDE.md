@@ -62,30 +62,9 @@ Main entry point that sources modular libraries from `lib/`. Supports both inter
 - `--service` / `--no-service` - Enable/disable systemd service setup
 - `--skip-build` - Skip build if binary exists
 
-**Non-Interactive Mode Examples:**
+**Non-Interactive Mode Example:**
 ```bash
-# Minimal automated deployment
-./setup-gateway.sh -y \
-    --board WM1302 \
-    --region eu1 \
-    --eui auto \
-    --cups-key "NNSXS.xxx..." \
-    --service
-
-# Full automation with all options
-./setup-gateway.sh --non-interactive \
-    --force \
-    --board PG1302 \
-    --region nam1 \
-    --eui AABBCCDDEEFF0011 \
-    --cups-key-file /etc/ttn/cups.key \
-    --log-file /var/log/station.log \
-    --gps /dev/ttyAMA0 \
-    --service \
-    --skip-build
-
-# Non-interactive uninstall
-./setup-gateway.sh --uninstall -y
+./setup-gateway.sh -y --board WM1302 --region eu1 --eui auto --cups-key "NNSXS.xxx..." --service
 ```
 
 ### Board Configuration System
