@@ -744,19 +744,32 @@ step_create_credentials() {
 
     local template="$CUPS_DIR/station.conf.template"
     if file_exists "$template"; then
-        # Format GPS_DEVICE for JSON: either false or quoted string
+        # Format GPS_DEVICE for JSON: quoted string or placeholder for removal
+        # Set PPS_MODE based on GPS availability: "gps" or "fuzzy"
         local gps_json_value
+        local pps_mode
         if [[ -n "$GPS_DEVICE" ]]; then
             gps_json_value="\"$GPS_DEVICE\""
+            pps_mode="gps"
         else
-            gps_json_value="false"
+            # Use placeholder - line will be removed (Basic Station requires string, not boolean)
+            gps_json_value="\"__GPS_DISABLED__\""
+            pps_mode="fuzzy"
         fi
 
         process_template "$template" "$CUPS_DIR/station.conf" \
             "GATEWAY_EUI=$GATEWAY_EUI" \
             "INSTALL_DIR=$SCRIPT_DIR" \
             "LOG_FILE=$LOG_FILE" \
-            "GPS_DEVICE=$gps_json_value"
+            "GPS_DEVICE=$gps_json_value" \
+            "PPS_MODE=$pps_mode"
+
+        # Remove GPS line entirely if disabled (Basic Station expects string, not boolean)
+        if [[ -z "$GPS_DEVICE" ]]; then
+            sed -i '/__GPS_DISABLED__/d' "$CUPS_DIR/station.conf"
+            log_info "Removed GPS config line (GPS disabled, PPS mode set to fuzzy)"
+        fi
+
         chmod 644 "$CUPS_DIR/station.conf"
         echo "  Created: station.conf"
     else

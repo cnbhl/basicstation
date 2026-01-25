@@ -225,7 +225,8 @@ TTN CUPS configuration directory:
   - `{{GATEWAY_EUI}}` - 16-char hex Gateway EUI
   - `{{INSTALL_DIR}}` - Script directory path
   - `{{LOG_FILE}}` - Station log file path
-  - `{{GPS_DEVICE}}` - GPS device path or `false`
+  - `{{GPS_DEVICE}}` - GPS device path (line removed if GPS disabled)
+  - `{{PPS_MODE}}` - PPS timing mode: "gps" (with GPS) or "fuzzy" (without GPS)
 - `reset_lgw.sh` - GPIO reset script with Pi 5 support (single source of truth)
 - `start-station.sh` - Launch script (`-d` flag for debug variant)
 - `rinit.sh` - Radio initialization called by station (invokes `reset_lgw.sh`)
