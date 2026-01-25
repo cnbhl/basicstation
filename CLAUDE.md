@@ -218,14 +218,18 @@ Platform/variant configuration in `setup.gmk`:
 
 ## Versioning Convention
 
-Format: `2.0.6-cnbhl.N` or `2.0.6-cnbhl.Na`
+Format: `2.0.6-cnbhl.X.Y` or `2.0.6-cnbhl.X.Ya`
 
-- **Main release**: `2.0.6-cnbhl.N` where N is an incrementing natural number (1, 2, 3...)
-- **Hotfix**: `2.0.6-cnbhl.Na` where a is an incrementing letter per main release (a, b, c...)
-- **Tag**: No "v" prefix (e.g., `2.0.6-cnbhl.5`)
-- **Release title**: `Release 2.0.6-cnbhl.N` (prefix with "Release ")
+- **Major release**: `2.0.6-cnbhl.X.0` where X increments for major feature additions
+- **Minor release**: `2.0.6-cnbhl.X.Y` where Y increments for smaller changes within a major release
+- **Hotfix**: `2.0.6-cnbhl.X.Ya` where a is an incrementing letter (a, b, c...)
+- **Tag**: No "v" prefix (e.g., `2.0.6-cnbhl.1.0`)
+- **Release title**: `Release 2.0.6-cnbhl.X.Y` (prefix with "Release ")
 
-Examples: Tag `2.0.6-cnbhl.5` → Title "Release 2.0.6-cnbhl.5"
+**History**: Versions `2.0.6-cnbhl.1` through `2.0.6-cnbhl.5` used the old single-number scheme.
+Starting with `2.0.6-cnbhl.1.0`, we use the new X.Y format.
+
+Examples: Tag `2.0.6-cnbhl.1.0` → Title "Release 2.0.6-cnbhl.1.0"
 
 ## Git Workflow
 
