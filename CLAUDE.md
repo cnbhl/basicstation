@@ -35,6 +35,11 @@ cd regr-tests
 ./run-regression-tests        # All tests
 ./run-regression-tests -v     # Verbose
 ./run-regression-tests -n     # Exclude hardware tests
+./run-tests-core              # Core tests only
+./run-tests-tls-cups          # TLS/CUPS tests
+./run-tests-pps               # PPS timing tests
+./run-tests-updn              # Uplink/downlink tests
+./run-tests-all               # All categories
 ```
 
 ## Fork-Specific Development
@@ -224,6 +229,42 @@ Handles Raspberry Pi GPIO offset differences:
 
 Auto-detection via `/sys/kernel/debug/gpio`, `/sys/class/gpio/gpiochip*/base`, or `/proc/device-tree/model` fallback.
 
+### GPS/PPS Recovery and GPSD Support (cherry-picked from MultiTech)
+
+GPS reliability improvements cherry-picked from
+[MultiTechSystems/basicstation](https://github.com/MultiTechSystems/basicstation)
+`feature/gps-recovery` and `feature/gpsd-support` branches.
+
+**GPS/PPS Recovery** (`src/timesync.c`):
+- Detects PPS loss after 90 seconds (`NO_PPS_RESET_THRES`) and resets GPS sync
+- Retries GPS reset every 5 seconds, up to 6 attempts (`NO_PPS_RESET_FAIL_THRES`)
+- Forces station restart if GPS cannot recover
+- Detects excessive clock drift (15 consecutive failures → restart)
+- Thresholds configurable via environment variables for testing
+- Guarded by `CFG_sx1302 || CFG_gps_recovery`
+- Test: `regr-tests/test2-pps-recovery/`
+- Doc: `docs/GPS-PPS-Recovery.md`
+
+**GPSD Support** (`src-linux/gps.c`):
+- `CFG_usegpsd` compiler flag replaces direct serial/FIFO GPS with `libgps`/gpsd
+- Enables multi-slave independent GPS/PPS capability (without gpsd, only slave#0 gets PPS)
+- `CFG_nogps` for simulation builds without GPS
+- Original serial GPS handling preserved when `CFG_usegpsd` not defined
+
+**LNS GPS Control** (`src/s2e.c`, `src-linux/gps.c`, `src/timesync.c`):
+- Station advertises `gps-ctrl` feature flag
+- LNS can send `"gps_enable": false` in `router_config` to disable GPS/PPS
+- `sys_disableGPS()` / `sys_gpsEnabled()` / `sys_setGPSEnabled()` API
+- Falls back to LNS-only time synchronization when GPS disabled
+- GPS can be re-enabled by LNS sending `"gps_enable": true`
+
+**Test infrastructure** (included in GPS/PPS recovery commit):
+- `regr-tests/run-tests-common` - Shared test runner framework
+- `regr-tests/run-tests-{core,tls-cups,updn,pps,all}` - Category-based test runners
+- `regr-tests/pki-data/regen-certs.sh` - PKI certificate regeneration script
+- `regr-tests/README.md` - Regression test documentation
+- Updated CI workflow with matrix builds (testsim + testms, mbedtls 2.x + 3.x)
+
 ### `tools/chip_id/`
 Standalone EUI detection tool derived from Semtech sx1302_hal:
 - `chip_id.c` - Reads EUI from SX1302 via SPI
@@ -334,3 +375,62 @@ Examples: Tag `2.0.6-cnbhl.1.0` → Title "Release 2.0.6-cnbhl.1.0"
 - **All changes require a PR**: Create a feature/fix branch, then open a pull request
 - **Branch naming**: Use prefixes like `fix/`, `feature/`, `docs/` (e.g., `fix/skip-gps-option`)
 - **Before every commit**: Review CLAUDE.md and update it if the commit introduces new features, changes conventions, modifies the project structure, or adds/removes files that are documented here. Keep CLAUDE.md as the single source of truth for project context.
+
+## MultiTech Cherry-Pick Tracker
+
+Cherry-picks from [MultiTechSystems/basicstation](https://github.com/MultiTechSystems/basicstation).
+Remote: `multitech` pointing to `https://github.com/MultiTechSystems/basicstation.git`.
+
+### Completed
+
+**`feature/duty-cycle` → `feature/duty-cycle-sliding-window`** (all 5 feature commits):
+- `2e15d53` - Add `duty_cycle_enabled` router_config option
+- `fa0d896` - Add region-specific duty cycle tests
+- `27c337e` - Implement sliding window duty cycle tracking
+- `a8bf871` - Add duty cycle tests to CI workflow
+- `ad6d5fb` - Fix EU868 independent band tracking per ETSI EN 300 220
+
+**`feature/gps-recovery` → `feature/gps-improvements`** (1 commit):
+- `9438ff9` - Add GPS/PPS recovery for SX1302/SX1303
+
+**`feature/gpsd-support` → `feature/gps-improvements`** (4 commits):
+- `57b2503` - Updated GPS handler to use gpsd instead of file stream
+- `d429908` - Add gpsd support with `CFG_usegpsd` compiler flag
+- `dd1035f` - Add GPS control feature for LNS to disable/enable GPS
+- `f5a5f8d` - Improve GPS control and timesync recovery
+
+### In Progress
+
+**`feature/in865-region`** (1 commit, custom — not from multitech):
+- `02c88ea` - Add IN865 region support
+
+**`feature/mbedtls-3x`** (4 commits, custom — not from multitech):
+- `67edf21` - Copy PSA headers for mbedtls 3.x compatibility
+- `5dfb7ae` - Add mbedtls 3.x compatibility with backward compatibility for 2.x
+- `a7df227` - Initialize PSA crypto for mbedtls 3.x TLS 1.3 support
+- `4cae440` - Fix mbedtls 3.x key parsing for DER format credentials
+
+### Candidates (not yet cherry-picked)
+
+**`multitech/feature/fine-timestamp`** — Fine timestamp for SX1302/SX1303:
+- `505bb59` - Add fine timestamp support for SX1302/SX1303 with GPS
+- `229abc5` - Add memset initialization for sx130xconf struct
+
+**`multitech/feature/channel-plans`** — Additional region support:
+- `926ff01` - Add channel plan support for additional regions
+- `1c60f53` - Add IL915 region support and CCA/LBT for SX1302/SX1303
+
+**`multitech/feature/updn-dr`** — SF5/SF6 asymmetric datarate (RP002-1.0.5):
+- `871d558` - Add SF5/SF6 and asymmetric datarate support for RP002-1.0.5
+
+**`multitech/feature/rejoin`** — Rejoin request handling:
+- `cf6eaf1` - Implement rejoin request handling with raw PDU format
+
+**`multitech/feature/lbtconf`** — LBT channel configuration:
+- `571f830` - Implement LBT channel configuration via router_config
+
+**`multitech/feature/pdu-only`** — Raw frame forwarding:
+- `93340bb` - Add pdu-only mode for raw frame forwarding
+
+**`multitech/feature/remove-v2-code`** — Cleanup:
+- `36debf0` - Remove SX1301AR (v2 gateway) code
