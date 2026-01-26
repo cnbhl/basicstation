@@ -257,6 +257,11 @@ The `fts` field (nanoseconds, `-1` if unavailable) is always included. When `fts
 {"fts": 123456789, "rxtime": 1706000000.123456789, ...}
 ```
 
+### Timesync: Exit on Stuck Concentrator
+Cherry-picked from MultiTech fork (`eee8f10`). If the SX130x trigger counter stops ticking (concentrator locked up), the station now exits after `5 * QUICK_RETRIES` consecutive excessive clock drift cycles, allowing systemd to restart the service and re-initialize the hardware. Without this, a stuck concentrator causes the station to run indefinitely doing nothing.
+
+**File modified:** `src/timesync.c` - Added `exit(EXIT_FAILURE)` with `CRITICAL` log after excessive drift threshold.
+
 ### `tests/` - Test Scripts
 Test scripts for validating setup functionality:
 - `test-setup.sh` - Unit tests for validation and utility functions (no hardware required)
@@ -339,6 +344,9 @@ The [xoseperez/basicstation](https://github.com/xoseperez/basicstation) fork has
 - **OUI filter**: Filters join requests by DevEUI manufacturer prefix (e.g., `0xA81758` = RAK)
 - **NetID filter**: Filters data frames by network ID extracted from DevAddr (e.g., `0x000013` = TTN)
 Useful for multi-tenant gateways or shared infrastructure. Not needed for single-network setups.
+
+**MultiTech Fork Cherry-Pick Analysis**
+See [docs/MULTITECH_CHERRY_PICKS.md](docs/MULTITECH_CHERRY_PICKS.md) for a detailed analysis of commits from the [MultiTechSystems/basicstation](https://github.com/MultiTechSystems/basicstation) fork worth cherry-picking. Covers region support (AS923-2/3/4, IN865), mbedtls 3.x, SF5/SF6, LBT, regulatory TX power fixes, and more. This file can be removed once all relevant cherry-picks have been completed.
 
 ## Versioning Convention
 

@@ -232,6 +232,10 @@ ustime_t ts_updateTimesync (u1_t txunit, int quality, const timesync_t* curr) {
         }
         if( stats->excessive_drift_cnt >= 2*QUICK_RETRIES )
             stats->drift_thres = MAX_MCU_DRIFT_THRES;  // reset - we might be stuck on a very low value
+        if( stats->excessive_drift_cnt >= 5*QUICK_RETRIES ) {
+            LOG(MOD_SYN|CRITICAL, "Clock drift could not recover, forcing reset");
+            exit(EXIT_FAILURE);
+        }
         return TIMESYNC_RADIO_INTV/2;
     }
     stats->excessive_drift_cnt = 0;
