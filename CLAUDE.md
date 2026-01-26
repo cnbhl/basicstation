@@ -11,6 +11,7 @@ This is a fork of [lorabasics/basicstation](https://github.com/lorabasics/basics
 - Automated TTN CUPS setup via `setup-gateway.sh`
 - Automatic Gateway EUI detection from SX1302/SX1303 chips
 - Systemd service configuration
+- Fine timestamp support for SX1302/SX1303 with GPS PPS
 
 For upstream Basic Station documentation: https://doc.sm.tc/station
 
@@ -229,6 +230,32 @@ Standalone EUI detection tool derived from Semtech sx1302_hal:
 - `chip_id.c` - Reads EUI from SX1302 via SPI
 - `log_stub.c` - Logging stub for standalone build
 - Built against `build-corecell-std/lib/liblgw1302.a`
+
+### Fine Timestamp Support (SX1302/SX1303)
+Adds nanosecond-precision fine timestamps to uplink frames when GPS PPS is available. This is a core station C code modification (not shell/setup tooling).
+
+**How it works:**
+- Fine timestamping is automatically enabled when `"pps": true` in `station.conf` (i.e., GPS is connected)
+- The SX1302/SX1303 HAL provides fine timestamps (`ftime`) for received packets across all spreading factors (SF5-SF12)
+- Fine timestamps are in nanoseconds; the `fts` field is `-1` when unavailable
+- When a fine timestamp is present, `rxtime` in the uplink JSON is encoded with nanosecond precision (`%.9f` via the `'F'` format specifier) instead of the standard microsecond precision (`'T'`)
+- When duplicate/mirror frames are detected from multiple modems, the fine timestamp is preserved from whichever copy has it
+
+**Files modified:**
+- `src/sx130xconf.h` - Added `struct lgw_conf_ftime_s ftime` to `sx130xconf` (SX1302 builds)
+- `src/sx130xconf.c` - Enables fine timestamping (`LGW_FTIME_MODE_ALL_SF`) when PPS is enabled via `lgw_ftime_setconf()`
+- `src-linux/ralsub.h` - Added `s4_t fts` field to `ral_rx_resp` struct
+- `src-linux/ral_slave.c` - Populates `fts` from HAL `ftime_received`/`ftime`; zero-initializes `sx130xconf` with `memset`
+- `src-linux/ral_master.c` - Propagates `fts` from slave response to `rxjob`
+- `src/ral_lgw.c` - Populates `fts` from HAL in single-process mode
+- `src/s2e.c` - Copies fine timestamp between mirror frames during dedup, includes `fts` in uplink JSON, appends nanosecond fractional time to `rxtime`
+- `src/uj.c` / `src/uj.h` - Added `uj_encFTime()` for nanosecond-precision timestamp encoding and `'F'` format specifier in `encArg()`
+
+**Uplink JSON output:**
+The `fts` field (nanoseconds, `-1` if unavailable) is always included. When `fts > -1`, `rxtime` gains nanosecond fractional precision:
+```json
+{"fts": 123456789, "rxtime": 1706000000.123456789, ...}
+```
 
 ### `tests/` - Test Scripts
 Test scripts for validating setup functionality:
