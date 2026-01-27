@@ -418,14 +418,16 @@ Remote: `multitech` pointing to `https://github.com/MultiTechSystems/basicstatio
 
 ### In Progress
 
-**`feature/in865-region`** (1 commit, custom — not from multitech):
-- `02c88ea` - Add IN865 region support
+**`multitech/master` → `feature/in865-region`** (1 commit):
+- `02c88ea` ← `b10bd10` - Add IN865 region support
+  (Author: Jason Reiss, MultiTech — cherry-picked from `multitech/master`)
 
-**`feature/mbedtls-3x`** (4 commits, custom — not from multitech):
-- `67edf21` - Copy PSA headers for mbedtls 3.x compatibility
-- `5dfb7ae` - Add mbedtls 3.x compatibility with backward compatibility for 2.x
-- `a7df227` - Initialize PSA crypto for mbedtls 3.x TLS 1.3 support
-- `4cae440` - Fix mbedtls 3.x key parsing for DER format credentials
+**`multitech/master` → `feature/mbedtls-3x`** (4 commits):
+- `67edf21` ← `e75b882` - Copy PSA headers for mbedtls 3.x compatibility
+- `5dfb7ae` ← `cb9d67b` - Add mbedtls 3.x compatibility with backward compatibility for 2.x
+- `a7df227` ← `7a344b8` - Initialize PSA crypto for mbedtls 3.x TLS 1.3 support
+- `4cae440` ← `6944075` - Fix mbedtls 3.x key parsing for DER format credentials
+  (Author: Jason Reiss, MultiTech — cherry-picked from `multitech/master`)
 
 ### Candidates (not yet cherry-picked)
 
