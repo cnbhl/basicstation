@@ -21,6 +21,11 @@ Build for Raspberry Pi with SX1302/SX1303:
 make platform=corecell variant=std
 ```
 
+Build with gpsd support:
+```bash
+make platform=corecell variant=stdgpsd
+```
+
 Build debug variant:
 ```bash
 make platform=corecell variant=debug
@@ -66,6 +71,7 @@ Main entry point that sources modular libraries from `lib/`. Supports both inter
 - `--cups-key-file <path>` - Read CUPS key from file (alternative to --cups-key)
 - `--log-file <path>` - Station log file path
 - `--gps <device|none>` - GPS device path or 'none' to disable
+- `--gps-mode <serial|gpsd>` - GPS communication mode (default: serial)
 - `--service` / `--no-service` - Enable/disable systemd service setup
 - `--skip-build` - Skip build if binary exists
 
@@ -156,16 +162,17 @@ GPS serial port detection:
 Setup wizard steps (in order):
 1. `step_check_existing_credentials()` - Warn if overwriting
 2. `step_select_board()` - Select concentrator board (GPIO config)
-3. `step_build_station()` - Build station binary and chip_id
-4. `step_select_region()` - TTN region selection (eu1/nam1/au1)
-5. `step_detect_eui()` - Auto-detect or manual EUI entry
-6. `step_show_registration_instructions()` - TTN Console guidance
-7. `step_get_cups_key()` - Collect CUPS API key
-8. `step_setup_trust_cert()` - Download/copy trust certificate
-9. `step_select_log_location()` - Choose log file path
-10. `step_detect_gps()` - GPS port detection
-11. `step_create_credentials()` - Write credential files and station.conf
-12. `step_setup_service()` - Optional systemd setup (includes startup verification)
+3. `step_select_gps_mode()` - Choose serial or gpsd GPS communication
+4. `step_build_station()` - Build station binary and chip_id (variant depends on GPS mode)
+5. `step_select_region()` - TTN region selection (eu1/nam1/au1)
+6. `step_detect_eui()` - Auto-detect or manual EUI entry
+7. `step_show_registration_instructions()` - TTN Console guidance
+8. `step_get_cups_key()` - Collect CUPS API key
+9. `step_setup_trust_cert()` - Download/copy trust certificate
+10. `step_select_log_location()` - Choose log file path
+11. `step_detect_gps()` - GPS port detection
+12. `step_create_credentials()` - Write credential files and station.conf
+13. `step_setup_service()` - Optional systemd setup (includes startup verification)
 
 Additional functions:
 - `verify_gateway_started()` - Waits up to 30s for "Concentrator started" in logs
@@ -187,14 +194,14 @@ Set in `setup-gateway.sh`, used across libs:
 - `BOARD_CONF`, `BOARD_CONF_TEMPLATE` - Board configuration files
 - `BOARD_TYPE`, `SX1302_RESET_BCM`, `SX1302_POWER_EN_BCM` - Board GPIO settings
 - `TTN_REGION`, `CUPS_URI`, `GATEWAY_EUI`, `CUPS_KEY`
-- `LOG_FILE`, `GPS_DEVICE`, `MODE`, `SKIP_DEPS`
+- `LOG_FILE`, `GPS_DEVICE`, `USE_GPSD`, `MODE`, `SKIP_DEPS`
 
 **Non-Interactive Mode Variables:**
 - `NON_INTERACTIVE` - Boolean, true when -y/--non-interactive is set
 - `FORCE_OVERWRITE` - Boolean, true when --force is set
 - `CLI_BOARD`, `CLI_REGION`, `CLI_EUI` - CLI-provided configuration values
 - `CLI_CUPS_KEY`, `CLI_CUPS_KEY_FILE` - CUPS key from CLI or file
-- `CLI_LOG_FILE`, `CLI_GPS` - Log and GPS settings from CLI
+- `CLI_LOG_FILE`, `CLI_GPS`, `CLI_GPS_MODE` - Log and GPS settings from CLI
 - `CLI_SERVICE` - "yes", "no", or "" for service setup preference
 - `CLI_SKIP_BUILD` - Boolean, skip build if binary exists
 
@@ -245,11 +252,16 @@ GPS reliability improvements cherry-picked from
 - Test: `regr-tests/test2-pps-recovery/`
 - Doc: `docs/GPS-PPS-Recovery.md`
 
-**GPSD Support** (`src-linux/gps.c`):
+**GPSD Support** (`src-linux/gps.c`, `src-linux/sys_linux.c`, `src-linux/sys_linux.h`):
 - `CFG_usegpsd` compiler flag replaces direct serial/FIFO GPS with `libgps`/gpsd
 - Enables multi-slave independent GPS/PPS capability (without gpsd, only slave#0 gets PPS)
 - `CFG_nogps` for simulation builds without GPS
 - Original serial GPS handling preserved when `CFG_usegpsd` not defined
+- `sys_linux.c`: `gpsEnabled`, `gps_enable` config key, `deviceGPSSupport()`, and startup code
+  all guarded by `CFG_usegpsd`; without it, uses `gpsDevice` pointer for serial GPS
+- `sys_linux.h`: `sys_enableGPS()` signature differs: no-arg with `CFG_usegpsd`, `str_t device` without
+- `deviceGPSSupport()` replaced: returns 1 (RPi has no MultiTech proprietary `device_info.json`)
+- Build variant `stdgpsd` in `setup.gmk` enables `CFG_usegpsd` and links `-lgps`
 
 **LNS GPS Control** (`src/s2e.c`, `src-linux/gps.c`, `src/timesync.c`):
 - Station advertises `gps-ctrl` feature flag
@@ -327,6 +339,8 @@ sudo journalctl -u basicstation.service -f
 
 Platform/variant configuration in `setup.gmk`:
 - `platform=corecell` selects SX1302 HAL (`deps/lgw1302`)
+- `variant=std` — standard build (direct serial GPS)
+- `variant=stdgpsd` — build with gpsd support (`CFG_usegpsd`, links `-lgps`)
 - Auto-detects ARM32/ARM64 for native builds
 - Cross-compilation via `$HOME/toolchain-corecell/` if available
 
@@ -393,11 +407,14 @@ Remote: `multitech` pointing to `https://github.com/MultiTechSystems/basicstatio
 **`feature/gps-recovery` → `feature/gps-improvements`** (1 commit):
 - `9438ff9` - Add GPS/PPS recovery for SX1302/SX1303
 
-**`feature/gpsd-support` → `feature/gps-improvements`** (4 commits):
+**`feature/gpsd-support` → `feature/gps-improvements`** (4 commits + fix):
 - `57b2503` - Updated GPS handler to use gpsd instead of file stream
 - `d429908` - Add gpsd support with `CFG_usegpsd` compiler flag
 - `dd1035f` - Add GPS control feature for LNS to disable/enable GPS
 - `f5a5f8d` - Improve GPS control and timesync recovery
+- *(fix)* - Add missing `CFG_usegpsd` guards in `sys_linux.c`/`.h`, replace
+  MultiTech-proprietary `deviceGPSSupport()`, add `stdgpsd` build variant
+  and `--gps-mode` setup option
 
 ### In Progress
 
