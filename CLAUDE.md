@@ -319,6 +319,25 @@ The [xoseperez/basicstation](https://github.com/xoseperez/basicstation) fork has
 - **NetID filter**: Filters data frames by network ID extracted from DevAddr (e.g., `0x000013` = TTN)
 Useful for multi-tenant gateways or shared infrastructure. Not needed for single-network setups.
 
+## Cherry-Picked Fixes from MultiTech Fork
+
+Some fixes have been cherry-picked from [MultiTechSystems/basicstation](https://github.com/MultiTechSystems/basicstation) (BSD-3-Clause license, same as upstream Semtech).
+
+### Applied Cherry-Picks
+
+| Fix | MultiTech Commit | File | Description |
+|-----|------------------|------|-------------|
+| ifconf memset | `64f634f` (partial) | `src/sx130xconf.c` | Zero-initialize `ifconf` struct before JSON parsing to prevent stale/garbage values in channel config fields not explicitly set by LNS |
+
+### Potential Future Cherry-Picks
+
+See `feature/fine-timestamp` branch for analysis of additional MultiTech commits that may be useful:
+- SF5/SF6 spreading factor support
+- SX1302 LBT error handling
+- Fine timestamp support
+- Timesync exit on stuck concentrator
+- AS923-2/3/4 region support
+
 ## Versioning Convention
 
 Format: `2.0.6-cnbhl.X.Y` or `2.0.6-cnbhl.X.Ya`
