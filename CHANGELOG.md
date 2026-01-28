@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+* fix: Zero-initialize ifconf struct before JSON channel config parsing (cherry-pick from MultiTech `64f634f`)
+
 ## 2.0.6-cnbhl.1.0 - 2025-01-25
 
 * feature: Multi-board support with board selection wizard
